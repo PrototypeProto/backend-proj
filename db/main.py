@@ -1,6 +1,6 @@
 from sqlmodel import create_engine, text, SQLModel
 from sqlalchemy.ext.asyncio import AsyncEngine
-from ..code.config import Config
+from ..config import Config
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -17,7 +17,7 @@ async def init_db():
         TODO: figure out what metadata is for {conn.run_sync(SQLModel.metadata.create_all)}
     '''
     async with async_engine.begin() as conn:
-        from ..code.models import User
+        from .models import User
 
         await conn.run_sync(SQLModel.metadata.create_all)
 

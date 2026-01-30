@@ -7,7 +7,6 @@ from typing import Optional, Union, Annotated
 from fastapi import FastAPI, Header, APIRouter
 from fastapi import status
 from fastapi.exceptions import HTTPException
-# from .data_types import Users
 
 router_at_root = APIRouter()
 users = []
