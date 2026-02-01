@@ -26,9 +26,11 @@ class User(SQLModel, table=True):
             unique=True
         )
     )
+    email: str
     pwd: str
     user_description: str
     is_male: bool 
+    role: str
     date_created: date = Field (
         sa_column = Column(
             postgres.DATE, default=date.today
@@ -42,6 +44,3 @@ class User(SQLModel, table=True):
 
     def __repr__(self):
         return f"<User {self.username} + {self.uid}>"
-
-
-# 3:15

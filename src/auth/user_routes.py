@@ -10,7 +10,7 @@ from fastapi.exceptions import HTTPException
 from .schemas import UserUpdateModel, UserCreateModel, User
 from sqlmodel.ext.asyncio.session import AsyncSession
 from .service import UserService
-from ..db.main import get_session
+from src.db.main import get_session
 
 
 '''

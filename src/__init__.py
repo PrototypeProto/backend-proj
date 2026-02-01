@@ -5,10 +5,11 @@ from typing import Optional, Union, Annotated
     Annotated[type, "annotation textr"]
 '''
 from fastapi import FastAPI, Header
-from .users.user_routes import router_at_users
-from .root_routes import router_at_root
-from .config import Settings
-from .db.main import init_db
+from src.auth.user_routes import router_at_users
+from src.products.product_routes import router_at_products
+from src.root_routes import router_at_root
+from src.config import Settings
+from src.db.main import init_db
 
 from contextlib import asynccontextmanager
 
@@ -34,3 +35,4 @@ app = FastAPI(
 # app.include_router(router=router, prefix=f"/{api_version}/user")
 app.include_router(router=router_at_users, prefix="/users")
 app.include_router(router=router_at_root, prefix="")
+app.include_router(router=router_at_products, prefix="/products")
