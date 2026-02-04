@@ -13,6 +13,9 @@ class StrictModel(BaseModel):
 
 
 class MemberRole(str, Enum):
+    '''
+        May deprecate ADMIN role in favor of president+VP role, TBD
+    '''
     ADMIN = "admin"
     COACH = "coach"
     OFFICER = "officer"
@@ -20,19 +23,22 @@ class MemberRole(str, Enum):
     INACTIVE = "inactive"
 
 class Semester(str, Enum):
+    '''
+        NO practice during the summer, but placeholder in case situation changes
+    '''
     SPRING = "spring"
     SUMMER = "summer"
     FALL = "fall"
 
 class Coxwain():
     '''
-        Member can be a coxwain
+        Marks members that are coxwains
     '''
     nid: str = Field(min_length=8, max_length=8)
 
 class CoxwainEvaluation():
     '''
-        Feedback on a coxwain's abilities and suggestions
+        Anonymous feedback on a coxwain's abilities and suggestions from rowers
     '''
     nid: str = Field(min_length=8, max_length=8)
     semester: Semester
@@ -41,7 +47,7 @@ class CoxwainEvaluation():
 
 class Rower():
     '''
-        Member can row
+        A member that rows
     '''
     nid: str = Field(min_length=8, max_length=8)
 
@@ -49,6 +55,9 @@ class Rower():
 
 
 class MembershipRolePermissions(StrictModel):
+    '''
+        Restricts certain APIs based on these permissions
+    '''
     role: MemberRole
     access_site: bool
     create_announcements: bool
@@ -60,6 +69,11 @@ class MembershipRolePermissions(StrictModel):
 
 
 class MemberStatus(StrictModel):
+    '''
+        A member's current membership status
+        NOTE: may just be stuch into the User table instead
+        
+    '''
     nid: str = Field(min_length=8, max_length=8)
     role: MembershipRole = MembershipRole.INACTIVE
 

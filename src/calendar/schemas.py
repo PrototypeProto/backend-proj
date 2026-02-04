@@ -50,6 +50,7 @@ class Attendance(StrictModel):
 
 class ScheduledMeetings(StrictModel):
     '''
+        Used to display information on active club dates
     '''
     date: date
     date_type: DateType
