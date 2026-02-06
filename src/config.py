@@ -6,6 +6,8 @@ class Settings(BaseSettings):
             exports the settings to be used throughout the project
     '''
     DB_URL: str
+    JWT_SECRET: str
+    JWT_ALGORITHM: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

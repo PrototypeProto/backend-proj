@@ -33,6 +33,6 @@ app = FastAPI(
 )
 
 # app.include_router(router=router, prefix=f"/{api_version}/user")
-app.include_router(router=router_at_users, prefix="/users")
+app.include_router(router=router_at_users, prefix="/auth")
 app.include_router(router=router_at_root, prefix="")
 app.include_router(router=router_at_products, prefix="/products")
