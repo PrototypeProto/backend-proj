@@ -12,7 +12,6 @@ from src.db.models import User
 
 user_service = UserService()
 
-
 class TokenBearer(HTTPBearer):
     
     def __init__(self, auto_error = True):
@@ -67,23 +66,34 @@ class RefreshTokenBearer(TokenBearer):
                 detail="Please provide an refresh token"
             )
 
+# token_bearer_data = AccessTokenBearer()
 
-async def get_current_user(token_details: dict = Depends(AccessTokenBearer()), session: AsyncSession = Depends(get_session)):
+
+async def get_current_user_email(token_details: dict = Depends(AccessTokenBearer()), session: AsyncSession = Depends(get_session)) -> dict:
     user_email = token_details['user']['email']
 
     user = await user_service.get_user_by_email(user_email, session)
 
     return user
 
+async def get_current_user_uuid(token_details: dict = Depends(AccessTokenBearer()), session: AsyncSession = Depends(get_session)) -> dict:
+    user_uuid = token_details['user']['uid']
+
+    return await user_service.get_user_by_uuid(user_uuid, session)
 
 class RoleChecker:
     def __init__(self, allowed_roles: List[str]) -> None:
         self.allowed_roles = allowed_roles
 
-    def __call__(self, current_user: User = Depends(get_current_user)) -> Any:
+    def __call__(self, current_user: User = Depends(get_current_user_email)) -> Any:
         if current_user.role in self.allowed_roles:
             return True
 
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient user permissions to access requested resource"
         )
+
+
+
+access_token_bearer = Depends(AccessTokenBearer())
+

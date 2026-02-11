@@ -8,14 +8,14 @@ from fastapi import FastAPI, Header, APIRouter
 from fastapi import status
 from fastapi.exceptions import HTTPException
 
-router_at_root = APIRouter()
+root_router = APIRouter()
 users = []
 
-@router_at_root.get("/", status_code=200 )
+@root_router.get("/", status_code=200 )
 async def welcome():
     return "You have reached the API" 
 
-@router_at_root.get("/")
+@root_router.get("/")
 async def get_headers(
     accept: str = Header(None),
     content_type: str = Header(None),

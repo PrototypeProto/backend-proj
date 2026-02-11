@@ -57,5 +57,5 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Downgrade schema."""
     op.execute(
-        "TRUNCATE TABLE MemberRole CASCADE;"
+        'TRUNCATE TABLE "MemberRole" CASCADE;'
     )

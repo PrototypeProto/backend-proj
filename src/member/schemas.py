@@ -4,6 +4,11 @@ import uuid
 from datetime import date, datetime
 from enum import Enum
 
+class StrictModel(BaseModel):
+    model_config = {
+        "extra": "forbid"
+    }
+
 class MemberRole(str, Enum):
     '''
         May deprecate ADMIN role in favor of president+VP role, TBD
@@ -28,23 +33,37 @@ class Coxwain(StrictModel):
     '''
         Marks members that are coxwains
     '''
-    uid: uuid.UUID
+    cox_id: uuid.UUID
 
 class CoxwainEvaluation(StrictModel):
     '''
         Anonymous feedback on a coxwain's abilities and suggestions from rowers
     '''
-    uid: uuid.UUID
+    cox_id: uuid.UUID
     semester: str
     year: int = Field(ge=1900)
     feedback: str
+
+class CoxwainEvaluationResponseModel(StrictModel):
+    evaluation_id: uuid.UUID
+    cox_id: uuid.UUID
+    semester: str
+    year: int
+    feedback: str
+
+class CoxwainEvaluationSearchModel(StrictModel):
+    '''
+        Anonymous feedback on a coxwain's abilities and suggestions from rowers
+    '''
+    cox_id: uuid.UUID
+    semester: str
+    year: int = Field(ge=1900)
 
 class Rower(StrictModel):
     '''
         A member that rows
     '''
-    uid: uuid.UUID
-
+    rower_id: uuid.UUID
 
 class RolePermissions(StrictModel):
     '''
@@ -89,23 +108,23 @@ class RolePermissionsUpdateModel(StrictModel):
 
         return self
 
-
-class MemberStatus(StrictModel):
-    '''
-        A member's current membership status
-        NOTE: may just be stuch into the User table instead
-        
-    '''
-    uid: uuid.UUID
-    role: str
-
 class MemberEnrollment(StrictModel):
     '''
         Tracks membership status on a per-semester basis
     '''
-    uid: uuid.UUID
+    member_id: uuid.UUID
     year: int = Field(ge=1900)
     semester: str
-    role: str
-    are_dues_paid: bool
+    role: str 
+    dues_paid: bool 
 
+class MemberEnrollmentCreateModel(StrictModel):
+    '''
+        Tracks membership status on a per-semester basis
+    '''
+    member_id: uuid.UUID
+    year: int = Field(ge=1900)
+    semester: str
+
+class UserPrivilegeUpdateModel(StrictModel):
+    role: str

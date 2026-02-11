@@ -7,6 +7,10 @@ from sqlmodel import SQLModel
     What we use to enforce data input
 '''
 
+class StrictModel(BaseModel):
+    model_config = {
+        "extra": "forbid"
+    }
 
 class User(BaseModel):
     uid: uuid.UUID
@@ -30,3 +34,4 @@ class UserUpdateModel(BaseModel):
 class UserLoginModel(BaseModel):
     email: str
     passwd: str
+

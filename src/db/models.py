@@ -139,9 +139,17 @@ class CoxwainEvaluation(SQLModel, table=True):
     '''
     __tablename__ = "CoxwainEvaluation"
     
-    cox_id: uuid.UUID = Field(foreign_key="User.uid", primary_key=True)
+    evaluation_id: uuid.UUID = Field(
+        sa_column = Column(
+            postgres.UUID,
+            nullable=False,
+            primary_key=True,
+            default=uuid.uuid4
+        )
+    )
+    cox_id: uuid.UUID = Field(foreign_key="User.uid", index=True)
     semester: str = Field(foreign_key="Semester.semester", index=True)
-    year: int = Field(ge=1900)
+    year: int = Field(ge=1900, index=True)
     feedback: str = Field(
         sa_column=
         Column(
@@ -179,7 +187,7 @@ class MemberEnrollmentHistory(SQLModel, table=True):
     '''
     __tablename__ = "MemberEnrollmentHistory"
     
-    uid: uuid.UUID = Field(foreign_key="User.uid", primary_key=True)
+    member_id: uuid.UUID = Field(foreign_key="User.uid", primary_key=True)
     year: int = Field(ge=1900, primary_key=True)
     semester: str = Field(foreign_key="Semester.semester", primary_key=True)
     role: str = Field(foreign_key="MemberRole.role")

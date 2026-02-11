@@ -5,9 +5,10 @@ from typing import Optional, Union, Annotated
     Annotated[type, "annotation textr"]
 '''
 from fastapi import FastAPI, Header
-from src.auth.user_routes import router_at_users
-from src.products.product_routes import router_at_products
-from src.root_routes import router_at_root
+from src.auth.user_routes import user_router
+from src.products.product_routes import product_router
+from src.root_routes import root_router
+from src.member.member_routes import member_router
 from src.config import Settings
 from src.db.main import init_db
 
@@ -36,6 +37,7 @@ app = FastAPI(
 )
 
 # app.include_router(router=router, prefix=f"/{api_version}/user")
-app.include_router(router=router_at_users, prefix="/auth")
-app.include_router(router=router_at_root, prefix="")
-app.include_router(router=router_at_products, prefix="/products")
+app.include_router(router=user_router, prefix="/auth")
+app.include_router(router=root_router, prefix="")
+app.include_router(router=product_router, prefix="/products")
+app.include_router(router=member_router, prefix="/member")

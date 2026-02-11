@@ -4,6 +4,7 @@ from .schemas import UserCreateModel, UserUpdateModel, UserLoginModel
 from sqlmodel import select, desc
 from datetime import date, datetime
 from .utils import generate_passwd_hash, verify_passwd
+from uuid import UUID
 
 '''
     Handles business logic (db access) for the {/users} route
@@ -15,10 +16,25 @@ class UserService:
     async def user_exists(self, email: str, session: AsyncSession) -> bool:
         user = await self.get_user_by_email(email, session)
 
-        return True if user is not None else False
+        return user is not None
+
 
     async def get_user_by_email(self, email:str, session:AsyncSession) -> dict:
         statement = select(User).where(User.email == email)
+
+        result = await session.exec(statement)
+
+        user = result.first()
+
+        return user if user is not None else None
+
+    async def user_exists_uid(self, uid: uuid.UUID, session: AsyncSession) -> bool:
+        user = await self.get_user_by_uuid(uid, session)
+
+        return user is not None
+
+    async def get_user_by_uuid(self, uid: uuid.UUID, session:AsyncSession) -> dict:
+        statement = select(User).where(User.uid == uid)
 
         result = await session.exec(statement)
 
