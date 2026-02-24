@@ -11,6 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 import sqlmodel
 
+from src.db.models import MemberRoleEnum, SemesterEnum
+
 
 # revision identifiers, used by Alembic.
 revision: str = 'ab2d8af67f1f'
@@ -28,13 +30,7 @@ def upgrade() -> None:
 
     op.bulk_insert(
         member_roles_table,
-        [
-            {"role": "admin"},
-            {"role": "coach"},
-            {"role": "officer"},
-            {"role": "member"},
-            {"role": "inactive"},
-        ],
+        [{"role": role} for role in MemberRoleEnum],
     )
 
     semester_table = sa.table(
@@ -44,11 +40,7 @@ def upgrade() -> None:
 
     op.bulk_insert(
         semester_table,
-        [
-            {"semester":"spring"},
-            {"semester":"summer"},
-            {"semester":"fall"},
-        ]
+        [{"semester": sem} for sem in SemesterEnum]
     )
 
     role_permissions_table = sa.table(
@@ -71,6 +63,9 @@ def upgrade() -> None:
             {"role":"officer", "access_site":True,"create_announcements":True,"manage_dates":True,"manage_members":True,"manage_roles":True,"view_funds":True,"view_roster":True},
             {"role":"member", "access_site":True,"create_announcements":False,"manage_dates":False,"manage_members":False,"manage_roles":False,"view_funds":False,"view_roster":True},
             {"role":"inactive", "access_site":False,"create_announcements":False,"manage_dates":False,"manage_members":False,"manage_roles":False,"view_funds":False,"view_roster":True},
+            {"role":"alumni", "access_site":False,"create_announcements":False,"manage_dates":False,"manage_members":False,"manage_roles":False,"view_funds":False,"view_roster":True},
+            {"role":"wait_for_approval", "access_site":False,"create_announcements":False,"manage_dates":False,"manage_members":False,"manage_roles":False,"view_funds":False,"view_roster":True},
+            {"role":"unregistered", "access_site":False,"create_announcements":False,"manage_dates":False,"manage_members":False,"manage_roles":False,"view_funds":False,"view_roster":True},
         ]
     )
 
