@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-import uuid
+from uuid import UUID
 from datetime import date, datetime
 from sqlmodel import SQLModel
 
@@ -9,7 +9,7 @@ from sqlmodel import SQLModel
 
 
 # class User(BaseModel):
-#     uid: uuid.UUID
+#     uid: UUID
 #     username: str
 #     email: str
 #     pwd: str
@@ -36,7 +36,7 @@ from sqlmodel import SQLModel
 
 
 class Product(BaseModel):
-    uid: uuid.UUID
+    uid: UUID
     product_name: str
     revision_number: int
     product_description: str

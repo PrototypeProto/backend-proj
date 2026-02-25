@@ -34,11 +34,11 @@ user_service = UserService()
 
 @user_router.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: UserCreateModel, session: AsyncSession = Depends(get_session)) -> dict:
-    username_exists = await user_service.username_exists(email, session)
-    if user_exists:
+    username_exists = await user_service.username_exists(user_data.username, session)
+    if username_exists:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User with username already exists")
     
-    email_exists = await user_service.email_exists(email, session)
+    email_exists = await user_service.email_exists(user_data.email, session)
     if email_exists:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User with email already exists")
     
