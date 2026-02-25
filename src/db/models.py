@@ -1,107 +1,39 @@
 from sqlmodel import SQLModel, Field, Column
 from datetime import date, datetime, time, timedelta
-from uuid import UUID
+from uuid import UUID, uuid4
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import Interval, Time as Time
-from enum import Enum
 import sqlalchemy.dialects.postgresql as postgres
+from src.db.db_enum_models import *
+from typing import Optional
+
+# TODO: Create CONSTS
 
 """##########################
-
-    NOTE: START ENUM HELPERS 
-
+    NOTE: START ENUM HELPERS
+    - Used to enforce expected data values
+    - must tie this data to Alembic .py files to ensure consitency
 ##########################"""
 
 
-class SemesterEnum(str, Enum):
-    """
-    NO practice during the summer, but placeholder in case situation changes
-    """
-
-    SPRING = "spring"
-    SUMMER = "summer"
-    FALL = "fall"
-
-
-class MemberRoleEnum(str, Enum):
-    """
-    May deprecate ADMIN role in favor of president+VP role, TBD
-    """
-
-    ADMIN = "admin"
-    COACH = "coach"
-    OFFICER = "officer"
-    MEMBER = "member"
-    INACTIVE = "inactive"
-
-
-class WorkoutTypeEnum(str, Enum):
-    """
-    Helper enum to validate input, workouts are the following 3 types
-    """
-
-    ERG = "erg"
-    MILERUN = "mile_run"
-    WATER = "water"
-
-
-class WorkoutMeasurementType(str, Enum):
-    """
-    Different means of measuring
-    """
-
-    DISTANCE = "distance"
-    TIME = "time"
-    WATTAGE = "wattage"
-
-
-class BoatEnum(str, Enum):
-    BUMBLEBEE = "bumble bee"
-    GRIZZLE = "grizzle"
-    WHEELER = "wheeler"
-    JUDGE = "judge"
-    VHP = "vhp"  # Vespoli?
-    PHATB = "phat b"
-
-    DZ = "d z"
-    CLASS = "class"
-    MJOLNIR = "mjolnir"
-    SPACEU = "space u"
-
-
-class BoatLineupTypeEnum(str, Enum):
-    MEN = "men"
-    WOMEN = "women"
-    MIXED = "mixed"
-
-
 """##########################
-
     NOTE: END OF ENUM HELPERS
-
 ##########################"""
 
 """##########################
-
-    NOTE: START USER DATA 
-
+    NOTE: START CLUB DATA 
 ##########################"""
 
 
 class User(SQLModel, table=True):
     """
-    How we access data from the database with an object that maps to corresponding parts,
-        outline constraints and other behavior
-
-    username is typically nid, but not enforced as coaches may not have one
+    username is should be nid, but not enforced as coaches may not have one
     """
 
     __tablename__ = "User"
 
     uid: UUID = Field(
-        sa_column=Column(
-            postgres.UUID, nullable=False, primary_key=True, default=uuid.uuid4
-        )
+        sa_column=Column(postgres.UUID, nullable=False, primary_key=True, default=uuid4)
     )
 
     username: str = Field(
@@ -109,21 +41,29 @@ class User(SQLModel, table=True):
         min_length=8,
         max_length=8,
     )
-    email: str = Field(sa_column=Column(postgres.VARCHAR, unique=True, nullable=False))
-    passwd_hash: str = Field(postgres.VARCHAR, exclude=True)
+    email: str = Field(
+        sa_column=Column(postgres.VARCHAR, unique=True, nullable=False), max_length=32
+    )
+    passwd_hash: str = Field(sa_column=Column(postgres.VARCHAR), exclude=True)
 
+    first_name: str = Field(nullable=False, min_length=2, index=True)
+    last_name: str = Field(nullable=False, min_length=2, index=True)
     role: MemberRoleEnum = Field(
         sa_column=Column(
             SAEnum(MemberRoleEnum, name="member_role_enum", create_type=False),
             nullable=False,
             index=True,
+            default=MemberRoleEnum.UNREGISTERED,
         )
     )
+    birthdate: date
     is_verified: bool = Field(default=False)
-    join_date: date = Field(sa_column=Column(postgres.DATE, default=date.today))
+    join_date: date = Field(
+        sa_column=Column(postgres.DATE, default=date.today, index=True)
+    )
 
     def __str__(self):
-        return f"<User: {self.username} identified by id: {self.uid}>"
+        return f"<User: {self.username} identified by id: {self.uid} and name {self.first_name}>"
 
 
 class Product(SQLModel, table=True):
@@ -135,9 +75,7 @@ class Product(SQLModel, table=True):
     __tablename__ = "Product"
 
     uid: UUID = Field(
-        sa_column=Column(
-            postgres.UUID, nullable=False, primary_key=True, default=uuid.uuid4
-        )
+        sa_column=Column(postgres.UUID, nullable=False, primary_key=True, default=uuid4)
     )
     product_name: str
     product_description: str = Field(sa_column=Column(postgres.TEXT, default=""))
@@ -161,24 +99,6 @@ class Coxwain(SQLModel, table=True):
     cox_id: UUID = Field(foreign_key="User.uid", primary_key=True)
 
 
-class CoxwainEvaluation(SQLModel, table=True):
-    """
-    Anonymous feedback on a coxwain's abilities and suggestions from rowers
-    """
-
-    __tablename__ = "CoxwainEvaluation"
-
-    evaluation_id: int = Field(nullable=False, primary_key=True)
-
-    cox_id: UUID = Field(foreign_key="User.uid", index=True)
-    semester_id: int = Field(foreign_key="Semester.semester_id")
-    date_created: date = Field(
-        sa_column=Column(postgres.DATE, index=True, default=date.today)
-    )
-
-    feedback: str = Field(sa_column=Column(postgres.TEXT))
-
-
 class Rower(SQLModel, table=True):
     """
     - Marks members that row
@@ -193,9 +113,8 @@ class Rower(SQLModel, table=True):
     rower_id: UUID = Field(foreign_key="User.uid", primary_key=True)
 
     times_rowed: int = Field(default=0, ge=0)
-    avg_wattage: int = Field(default=0, ge=0)
     total_pace_contribution: int = Field(default=0, nullable=False, ge=0)
-    personal_record_pace: Optional[timedelta] = Field(default=None)
+    avg_wattage: int = Field(default=0, ge=0)
 
 
 class RolePermissions(SQLModel, table=True):
@@ -222,6 +141,16 @@ class RolePermissions(SQLModel, table=True):
     view_roster: bool = False
 
 
+"""##########################
+    NOTE: END CLUB DATA 
+##########################"""
+
+
+"""##########################
+    NOTE: START EVALUATION DATA 
+##########################"""
+
+
 class MemberIssues(SQLModel, table=True):
     """
     Notes flaws/issues with a particular rower {im/material}
@@ -237,36 +166,63 @@ class MemberIssues(SQLModel, table=True):
     is_resolved: bool = False
 
 
-class PerformanceExams(SQLModel, table=True):
+class CoxwainEvaluation(SQLModel, table=True):
+    """
+    Anonymous feedback on a coxwain's abilities and suggestions from rowers
+    """
+
+    __tablename__ = "CoxwainEvaluation"
+
+    evaluation_id: int = Field(primary_key=True)
+
+    cox_id: UUID = Field(foreign_key="Coxwain.cox_id", index=True)
+    semester_id: int = Field(foreign_key="Semester.semester_id", index=True)
+    date_created: date = Field(
+        sa_column=Column(postgres.DATE, index=True, default=date.today)
+    )
+
+    feedback: str = Field(sa_column=Column(postgres.TEXT))
+
+
+class ExamModel(SQLModel, table=True):
     """
     Exams used to track performance over time
     """
 
-    __tablename__ = "PerformanceExams"
+    __tablename__ = "ExamModel"
 
-    exam: str = Field(nullable=False, primary_key=True)
+    exam_name: str = Field(nullable=False, primary_key=True)
 
-    workout_measurement_type: WorkoutMeasurementType = Field(
+    exam_type: WorkoutTypeEnum = Field(
         sa_column=Column(
             SAEnum(
-                WorkoutMeasurementType,
-                name="workout_measurement_type_enum",
+                WorkoutTypeEnum,
+                name="workout_type_enum",
+                create_type=False,
+            )
+        )
+    )
+    measure_type: WorkoutMeasurementTypeEnum = Field(
+        sa_column=Column(
+            SAEnum(
+                WorkoutMeasurementTypeEnum,
+                name="workout_measurement_type_enum_enum",
                 create_type=False,
             )
         )
     )
 
 
-class RecordedExams(SQLModel, table=True):
+class Exam(SQLModel, table=True):
     """
     Exams used to track performance over time
     """
 
-    __tablename__ = "RecordedExams"
+    __tablename__ = "Exam"
 
     exam_id: int = Field(primary_key=True)
 
-    exam: str = Field(foreign_key="PerformanceExams.exam", index=True)
+    exam_name: str = Field(foreign_key="ExamModel.exam_name", index=True)
     semester_id: int = Field(foreign_key="Semester.semester_id", index=True)
     date_occurred: date
 
@@ -279,41 +235,48 @@ class MemberExamPerformance(SQLModel, table=True):
 
     __tablename__ = "MemberExamPerformance"
 
-    exam_id: int = Field(foreign_key="RecordedExams.exam_id", primary_key=True)
+    exam_id: int = Field(foreign_key="Exam.exam_id", primary_key=True)
     member_id: UUID = Field(foreign_key="User.uid", primary_key=True)
 
-    completion_time: timedelta
-    avg_pace: Optional[timedelta]
-    avg_rate: Optional[int]
-    avg_wattage: Optional[int]
-    peak_wattage: Optional[int]
+    completion_time: timedelta = Field(
+        sa_column=Column(Interval, index=True, nullable=False)
+    )
+    avg_pace: Optional[timedelta] = Field(
+        sa_column=Column(Interval, nullable=True)
+    )
+    avg_rate: Optional[int] = Field(default=None, nullable=True)
+    avg_wattage: Optional[int] = Field(default=None, nullable=True)
+    peak_wattage: Optional[int] = Field(default=None, nullable=True)
 
 
-class RowerPerformanceOverTime(SQLModel, table=True):
+class RowerPerformanceRecord(SQLModel, table=True):
     """
-    tracks PR over time
+    tracks current PR of a member for an exam
+    value_int represents either the wattage or distance
+    value_time is the time it took to complete
     """
-    __tablename__ = "RowerPerformanceOverTime"
 
-    exam: str = Field(foreign_key="PerformanceExams.exam", primary_key=True)
+    __tablename__ = "RowerPerformanceRecord"
+
+    exam_name: str = Field(foreign_key="ExamModel.exam_name", primary_key=True)
     member_id: UUID = Field(foreign_key="User.uid", primary_key=True)
-    date_occurred: date = Field(primary_key=True)
+
+    date_occurred: date
 
     value_int: Optional[int] = Field(default=None)
-    value_time: Optional[timedelta] = Field(default=None)
+    value_time: Optional[timedelta] = Field(
+        sa_column=Column(Interval, nullable=True)
+    )
+
 
 # TODO: PR TABLES FOR DIFFERENT EXAMS {Mile runs, 5k, 2k, watt pyramid}
 
 """##########################
-
-    NOTE: END USER DATA 
-
+    NOTE: END EVALUATION DATA 
 ##########################"""
 
 """##########################
-
     NOTE: START WORKOUT DATA 
-
 ##########################"""
 
 
@@ -329,10 +292,13 @@ class Workout(SQLModel, table=True):
 
     __tablename__ = "Workout"
 
-    workout_id: int = Field(sa_column=Column(primary_key=True, nullable=False))
+    workout_id: int = Field(primary_key=True, nullable=False)
 
+    semester_id: int = Field(foreign_key="Semester.semester_id", index=True)
     date_occurred: date = Field(postgres.DATE, index=True)
-    workout: str = Field(sa_column=Column(postgres.VARCHAR, nullable=False, index=True))
+    workout_name: str = Field(
+        sa_column=Column(postgres.VARCHAR, nullable=False, index=True)
+    )
     workout_type: WorkoutTypeEnum = Field(
         sa_column=Column(
             SAEnum(WorkoutTypeEnum, name="workout_type_enum"),
@@ -340,79 +306,14 @@ class Workout(SQLModel, table=True):
             index=True,
         )
     )
+    sequence_num: int = Field(ge=1, index=True)
 
-    sequence_num: int = Field(ge=1)
     desc: str = Field(
         sa_column=Column(
             postgres.TEXT,
             nullable=True,
         )
     )
-
-
-class WorkoutRoutine(SQLModel, table=True):
-    """
-    - NOTE: FOR LAND-BASED ACTIVITIES
-    - Individual sub workout, maps to a parent workout
-    - workouts may vary by distance, time, or a mile run
-    - `target_rate` is an optional requirment, where NULL represents no cap,
-        typically go all out or inapplicable such as in the mile run
-    - `target_value` is either a distance (m), a time interval (min, sec) or wattage target
-
-    NOTE: Might have repeated values in the DB but may be negligent/can improve later
-    NOTE: May move (distance_or_duration, target_rate) to its own table and use it as a fk
-    NOTE: too much abstraction may be miserable to read, will depend on how its like during API dev, esp. frontend
-    """
-
-    __tablename__ = "WorkoutRoutine"
-
-    routine_id: int = Field(primary_key=True)
-
-    workout_id: int = Field(foreign_key="Workout.workout_id", index=True)
-    sequence_num: int = Field(ge=1, index=True)
-    target_measurement_type: WorkoutMeasurementType = Field(
-        sa_column=Column(
-            SAEnum(
-                WorkoutMeasurementType,
-                name="workout_measurement_type",
-                create_type=False,
-            ),
-            nullable=False,
-            index=True,
-        )
-    )
-
-    target_value: int = Field(
-        ge=1, index=True
-    )  # can represent meters OR seconds depending on `workout_type`
-    target_rate: Optional[int] = Field(
-        postgres.INTEGER, ge=1, default=None, nullable=True, index=True
-    )
-    # NOTE: FUTURE, add `TARGET_PACE`
-
-
-class MemberWorkoutPerformance(SQLModel, table=True):
-    """
-    Members self report their score (sometimes reported by officers/coaches)
-    avg_rate remains indexed for now NOTE: Subject to change
-    NOTE: this is the best i could do for now since its not always where we measure all but sometimes we do
-    """
-
-    __tablename__ = "MemberWorkoutPerformance"
-
-    member_id: UUID = Field(foreign_key="User.uid", primary_key=True)
-    workout_performed_id: int = Field(
-        foreign_key="WorkoutRoutine.routine_id", primary_key=True
-    )
-
-    total_time: Optional[timedelta] = Field(
-        sa_column=Column(Interval, default=None, nullable=True)
-    )
-    avg_pace: Optional[timedelta] = Field(
-        sa_column=Column(Interval, default=None, nullable=True, index=True)
-    )
-    avg_rate: Optional[int] = Field(default=None, nullable=True)
-    avg_wattage: Optional[int] = Field(default=None, nullable=True)
 
 
 class BoatWorkoutRoutine(SQLModel, table=True):
@@ -423,8 +324,9 @@ class BoatWorkoutRoutine(SQLModel, table=True):
     - workouts may vary by distance or time
     - `target_rate` NULL represents no cap, full steam ahead
     - `target_rate` may also represent (min or max) rate? Sometimes it is variable rate
+    - `result` is the length/duration of the subroutine NOTE: Idk the best way to name this value
 
-    NOTE: Might have repeated values in the DB but negligent/can improve later
+    NOTE: Might have repeated values in the DB. TODO: can improve later
     NOTE: May move (distance_or_duration, target_rate) to its own table and use it as a fk
     NOTE: too much abstraction may be miserable to read, will depend on how its like during API dev, esp. frontend
     NOTE: Unsure if `target_value` should be indexed or not
@@ -444,11 +346,11 @@ class BoatWorkoutRoutine(SQLModel, table=True):
             index=True,
         )
     )
-    target_measurement_type: WorkoutMeasurementType = Field(
+    target_measurement_type: WorkoutMeasurementTypeEnum = Field(
         sa_column=Column(
             SAEnum(
-                WorkoutMeasurementType,
-                name="workout_measurement_type_enum",
+                WorkoutMeasurementTypeEnum,
+                name="workout_measurement_type_enum_enum",
                 create_type=False,
             ),
             nullable=False,
@@ -456,11 +358,11 @@ class BoatWorkoutRoutine(SQLModel, table=True):
         )
     )
 
-    target_value: int = Field(
+    result: int = Field(
         ge=1, index=False
     )  # can represent meters OR seconds depending on `workout_type`
     target_rate: Optional[int] = Field(
-        postgres.INTEGER, ge=1, default=None, nullable=True, index=True
+        ge=1, default=None, nullable=True, index=True
     )
 
     total_time: Optional[timedelta] = Field(
@@ -475,7 +377,7 @@ class BoatWorkoutRoutine(SQLModel, table=True):
     avg_pace: Optional[timedelta] = Field(
         sa_column=Column(Interval, default=None, nullable=True)
     )
-    avg_rate: Optional[int] = Field(default=None, nullable=True)
+    avg_rate: Optional[int]
     # NOTE: FUTURE, add `TARGET_PACE`
 
 
@@ -498,8 +400,16 @@ class BoatRoutineIdentifier(SQLModel, table=True):
         )
     )
     coxwain_id: UUID = Field(foreign_key="Coxwain.cox_id", index=True)
+    lineup_type: BoatLineupTypeEnum = Field(
+        sa_column=Column(
+            SAEnum(BoatLineupTypeEnum, name="boat_lineup_type_enum", create_type=False),
+            index=True,
+        )
+    )
 
-    anticipated_pace: timedelta = Field(sa_column=Column(Interval, nullable=False))
+    anticipated_pace: timedelta = Field(
+        sa_column=Column(Interval, nullable=False)
+    )
 
 
 class RowerOnBoat(SQLModel, table=True):
@@ -532,16 +442,77 @@ class BoatFeedback(SQLModel, table=True):
     evaluation: str = Field(nullable=False)
 
 
+class LandWorkoutRoutine(SQLModel, table=True):
+    """
+    - NOTE: FOR LAND-BASED ACTIVITIES
+    - Individual sub workout, maps to a parent workout
+    - workouts may vary by distance, time, or a mile run
+    - `target_rate` is an optional requirment, where NULL represents no cap,
+        typically go all out or inapplicable such as in the mile run
+    - `target_value` is either a distance (m), a time Interval (min, sec) or wattage target
+
+    NOTE: Might have repeated values in the DB but may be negligent/can improve later
+    NOTE: May move (distance_or_duration, target_rate) to its own table and use it as a fk
+    NOTE: too much abstraction may be miserable to read, will depend on how its like during API dev, esp. frontend
+    """
+
+    __tablename__ = "LandWorkoutRoutine"
+
+    routine_id: int = Field(primary_key=True)
+
+    workout_id: int = Field(foreign_key="Workout.workout_id", index=True)
+    sequence_num: int = Field(ge=1, index=True)
+    target_measurement_type: WorkoutMeasurementTypeEnum = Field(
+        sa_column=Column(
+            SAEnum(
+                WorkoutMeasurementTypeEnum,
+                name="workout_measurement_type_enum",
+                create_type=False,
+            ),
+            nullable=False,
+            index=True,
+        )
+    )
+
+    target_value: int = Field(
+        ge=1, index=True
+    )  # can represent meters OR seconds depending on `workout_type`
+    target_rate: Optional[int] = Field(
+        ge=1, default=None, nullable=True, index=True
+    )
+    # NOTE: FUTURE, add `TARGET_PACE`
+
+
+class MemberWorkoutPerformance(SQLModel, table=True):
+    """
+    Members self report their score (sometimes reported by officers/coaches)
+    avg_rate remains indexed for now NOTE: Subject to change
+    NOTE: this is the best i could do for now since its not always where we measure all but sometimes we do
+    """
+
+    __tablename__ = "MemberWorkoutPerformance"
+
+    member_id: UUID = Field(foreign_key="User.uid", primary_key=True)
+    workout_performed_id: int = Field(
+        foreign_key="LandWorkoutRoutine.routine_id", primary_key=True
+    )
+
+    total_time: Optional[timedelta] = Field(
+        sa_column=Column(Interval, default=None, nullable=True)
+    )
+    avg_pace: Optional[timedelta] = Field(
+        sa_column=Column(Interval, default=None, nullable=True, index=True)
+    )
+    avg_rate: Optional[int] = Field(default=None, nullable=True)
+    avg_wattage: Optional[int] = Field(default=None, nullable=True)
+
+
 """##########################
-
     NOTE: END WORKOUT DATA 
-
 ##########################"""
 
 """##########################
-
-    NOTE: START CALENDAR DATA 
-
+    NOTE: START HISTORY DATA 
 ##########################"""
 
 
@@ -574,14 +545,6 @@ class SemesterAbsence(SQLModel, table=True):
     """
 
     __tablename__ = "SemesterAbsence"
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["Semester", "year"],
-            ["Semester.semester", "Semester.year"],
-            ondelete="CASCADE",
-        ),
-    )
 
     member_id: UUID = Field(foreign_key="User.uid", primary_key=True)
     date_occurred: date = Field(primary_key=True)
@@ -680,15 +643,11 @@ class RegisteredVolunteers(SQLModel, table=True):
 
 
 """##########################
-
-    NOTE: END CALENDAR DATA 
-
+    NOTE: END HISTORY DATA 
 ##########################"""
 
 """##########################
-
-    NOTE: START BOAT DATA 
-
+    NOTE: START BOAT INFO 
 ##########################"""
 
 
@@ -730,13 +689,13 @@ class BoatIssues(SQLModel, table=True):
 
 """##########################
 
-    NOTE: END BOAT DATA 
+    NOTE: END BOAT INFO 
 
 ##########################"""
 
 
 """##########################
-
+    TODO: Will implement at a later time once we have all the other APIs setup
     NOTE: START GOLD & BLACK
 
 ##########################"""
