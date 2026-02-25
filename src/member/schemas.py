@@ -10,9 +10,10 @@ class StrictModel(BaseModel):
         "extra": "forbid"
     }
 
+class UserSearchModel(StrictModel):
+    uid: UUID
 
-
-class Coxwain(StrictModel):
+class CoxwainModel(StrictModel):
     '''
         Marks members that are coxwains
     '''
@@ -36,6 +37,13 @@ class CreateCoxwainEvaluationModel(StrictModel):
     semester: SemesterEnum
     feedback: str = Field(nullable=False)
 
+class DeleteCoxwainEvaluationModel(StrictModel):
+    cox_id: UUID
+    evaluation_id: int 
+
+class SearchSpecificCoxwainEvaluationModel(StrictModel):
+    evaluation_id: int 
+
 
 class SearchCoxwainEvaluationModel(StrictModel):
     '''
@@ -46,7 +54,7 @@ class SearchCoxwainEvaluationModel(StrictModel):
     semester: SemesterEnum
     year: int = Field(ge=1900)
 
-class Rower(StrictModel):
+class RowerModel(StrictModel):
     '''
         A member that rows
     '''
