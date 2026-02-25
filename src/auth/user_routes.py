@@ -8,17 +8,17 @@ from fastapi import FastAPI, Header, APIRouter, Depends
 from fastapi import status
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
-from .schemas import UserUpdateModel, UserCreateModel, User, UserLoginModel
+from .schemas import UserChangePasswordModel, UserCreateModel, User, UserLoginModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 from .service import UserService
 from src.db.main import get_session
 from .utils import create_access_token, decode_token, verify_passwd
 from datetime import datetime, timedelta
-from .dependencies import RefreshTokenBearer, access_token_bearer, get_current_user_email, RoleChecker
+from .dependencies import RefreshTokenBearer, access_token_bearer, get_current_user_username, RoleChecker
 from src.db.redis import add_jti_to_blocklist
-from .dependencies_data import admin_rolechecker, coach_rolechecker, officer_rolechecker, member_rolechecker, public_rolechecker
+from .dependencies_data import admin_rolechecker, coach_rolechecker, officer_rolechecker, member_rolechecker, public_rolechecker, general_member_rolechecker
 
-REFRESH_TOKEN_EXPIRY = 2
+REFRESH_TOKEN_EXPIRY_DAYS = 2
 
 
 '''
@@ -34,22 +34,23 @@ user_service = UserService()
 
 @user_router.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: UserCreateModel, session: AsyncSession = Depends(get_session)) -> dict:
-    email = user_data.email
-
-    user_exists = await user_service.get_user_by_email(email, session)
-    
+    username_exists = await user_service.username_exists(email, session)
     if user_exists:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User with username already exists")
+    
+    email_exists = await user_service.email_exists(email, session)
+    if email_exists:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User with email already exists")
-
+    
     new_user = await user_service.create_user(user_data, session)
     return new_user
 
 @user_router.post("/login", status_code=status.HTTP_200_OK)
 async def login_user(login_data: UserLoginModel, session: AsyncSession = Depends(get_session)):
-    email = login_data.email
+    username = login_data.username
     passwd = login_data.passwd
 
-    user = await user_service.get_user_by_email(email, session)
+    user = await user_service.get_user_by_username(username, session)
 
     if user is not None:
         passwd_valid = verify_passwd(passwd, user.passwd_hash)
@@ -57,19 +58,20 @@ async def login_user(login_data: UserLoginModel, session: AsyncSession = Depends
         if passwd_valid:
             access_token = create_access_token(
                 user_data={
-                    "email": user.email,
+                    "username": user.username,
                     "uid": str(user.uid),
                     "role": user.role,
+                    "first_name": user.first_name,
                 },
             )
 
             refresh_token = create_access_token(
                 user_data={
-                    "email": user.email,
+                    "username": user.username,
                     "uid": str(user.uid),
                 },
                 refresh=True,
-                expiry=timedelta(days=REFRESH_TOKEN_EXPIRY),
+                expiry=timedelta(days=REFRESH_TOKEN_EXPIRY_DAYS),
             )
 
             return JSONResponse(
@@ -78,7 +80,8 @@ async def login_user(login_data: UserLoginModel, session: AsyncSession = Depends
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                     "user":{
-                        "email": user.email,
+                        "first_name": user.first_name,
+                        "username": user.username,
                         "uid": str(user.uid)
                     },
                 }
@@ -109,7 +112,7 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
     )
 
 @user_router.get('/me', dependencies=[member_rolechecker])
-async def get_current_user(user = Depends(get_current_user_email)):
+async def get_current_user(user = Depends(get_current_user_username)):
     return user
 
 @user_router.get("/logout", dependencies=[public_rolechecker])
