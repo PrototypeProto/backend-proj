@@ -147,11 +147,4 @@ class MemberService:
         await session.commit()
         return True
 
-    async def raise_p(
-        self, user_id: UUID, model: UserPrivilegeUpdateModel, session: AsyncSession
-    ):
-        statement = update(User).where(User.uid == user_id).values(model)
-        result = await session.exec(statement)
-        await session.commit()
 
-        return result.rowcount > 0

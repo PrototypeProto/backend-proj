@@ -14,7 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.service import UserService
 from src.db.main import get_session
 from datetime import datetime, timedelta
-from src.auth.dependencies import RefreshTokenBearer, access_token_bearer, get_current_user_username, get_current_user_uuid
+from src.auth.dependencies import RefreshTokenBearer, access_token_bearer, get_current_user_by_username, get_current_user_uuid
 from src.auth.dependencies_data import admin_rolechecker, coach_rolechecker, officer_rolechecker, member_rolechecker, public_rolechecker
 from .service import MemberService
 from uuid import UUID

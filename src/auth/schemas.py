@@ -14,24 +14,23 @@ class StrictModel(BaseModel):
 
 class User(StrictModel):
     uid: UUID 
-    username: str = Field(min_length=8, max_length=8)
-    email: str = Field(max_length=32)
+    username: str = Field(min_length=8, max_length=8, default='jo123456')
+    email: str = Field(max_length=32, default="john@ucf.edu")
     passwd_hash: str = Field(exclude=True)
-    first_name: str = Field(min_length=2)
-    last_name: str = Field(min_length=2)
+    first_name: str = Field(min_length=2, default="john")
+    last_name: str = Field(min_length=2, default="doe")
     role: MemberRoleEnum
     birthdate: date
     is_verified: bool
     join_date: date
 
 class UserCreateModel(StrictModel):
-    username: str = Field(min_length=8, max_length=8)
-    email: str = Field(max_length=32)
+    username: str = Field(min_length=8, max_length=8, default='jo123456')
+    email: str = Field(max_length=32, default="john@ucf.edu")
     passwd: str = Field(min_length=6)
-    first_name: str = Field(min_length=2)
-    last_name: str = Field(min_length=2)
+    first_name: str = Field(min_length=2, default="john")
+    last_name: str = Field(min_length=2, default="doe")
     birthdate: date
-    role: MemberRoleEnum = MemberRoleEnum.UNREGISTERED
 
 class UserChangePasswordModel(StrictModel):
     '''
@@ -42,6 +41,8 @@ class UserChangePasswordModel(StrictModel):
     new_passwd: str
 
 class UserLoginModel(StrictModel):
-    username: str = Field(min_length=8, max_length=8)
-    passwd: str = Field(min_length=6)
+    username: str = Field(min_length=8, max_length=8, default='jo123456')
+    passwd: str = Field(min_length=6, default="111111")
 
+class UserPrivilegeUpdateModel(StrictModel):
+    role: str

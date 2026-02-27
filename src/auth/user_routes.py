@@ -14,11 +14,10 @@ from .service import UserService
 from src.db.main import get_session
 from .utils import create_access_token, decode_token, verify_passwd
 from datetime import datetime, timedelta
-from .dependencies import RefreshTokenBearer, access_token_bearer, get_current_user_username, RoleChecker
+from .dependencies import RefreshTokenBearer, access_token_bearer, get_current_user_by_username, RoleChecker
 from src.db.redis import add_jti_to_blocklist
 from .dependencies_data import admin_rolechecker, coach_rolechecker, officer_rolechecker, member_rolechecker, public_rolechecker, general_member_rolechecker
-
-REFRESH_TOKEN_EXPIRY_DAYS = 2
+from src.db.db_enum_models import MemberRoleEnum
 
 
 '''
@@ -26,14 +25,16 @@ REFRESH_TOKEN_EXPIRY_DAYS = 2
     simple CRUD routes
     calls service() methods to perform business logic
 '''
+REFRESH_TOKEN_EXPIRY_DAYS = 2
 
 user_router = APIRouter()
 user_service = UserService()
-# role_checker = Depends([public_rolechecker])
+SessionDependency = Annotated[AsyncSession, Depends(get_session)]
+
 
 
 @user_router.post("/signup", response_model=User, status_code=status.HTTP_201_CREATED)
-async def create_user(user_data: UserCreateModel, session: AsyncSession = Depends(get_session)) -> dict:
+async def create_user(user_data: UserCreateModel, session: SessionDependency) -> dict:
     username_exists = await user_service.username_exists(user_data.username, session)
     if username_exists:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User with username already exists")
@@ -46,7 +47,7 @@ async def create_user(user_data: UserCreateModel, session: AsyncSession = Depend
     return new_user
 
 @user_router.post("/login", status_code=status.HTTP_200_OK)
-async def login_user(login_data: UserLoginModel, session: AsyncSession = Depends(get_session)):
+async def login_user(login_data: UserLoginModel, session: SessionDependency):
     username = login_data.username
     passwd = login_data.passwd
 
@@ -87,10 +88,10 @@ async def login_user(login_data: UserLoginModel, session: AsyncSession = Depends
                 }
             )
 
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid email and/or password")
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid username and/or password")
 
-@user_router.get("/all", response_model=List[User])
-async def get_all_users(session: AsyncSession = Depends(get_session)):
+@user_router.get("/all_users", response_model=List[User], dependencies=[admin_rolechecker])
+async def get_all_users(session: SessionDependency):
     users = await user_service.get_all_users(session)
     return users
 
@@ -111,12 +112,15 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
         status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid/Expired token"
     )
 
-@user_router.get('/me', dependencies=[member_rolechecker])
-async def get_current_user(user = Depends(get_current_user_username)):
+@user_router.get('/me', dependencies=[public_rolechecker])
+async def get_current_user(user = Depends(get_current_user_by_username)):
     return user
 
 @user_router.get("/logout", dependencies=[public_rolechecker])
 async def revoke_token(token_details: dict = access_token_bearer):
+    if (token_details is None):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid token was provided.")
+
     jti = token_details['jti']
 
     await add_jti_to_blocklist(jti)
@@ -128,8 +132,18 @@ async def revoke_token(token_details: dict = access_token_bearer):
         status_code=status.HTTP_200_OK
     )
 
+@user_router.put("/raise_my_privilege", status_code=status.HTTP_202_ACCEPTED)
+async def raise_privilege(session: SessionDependency, token: dict = access_token_bearer):
+    details = token["user"]["uid"]
+
+    result = await user_service.raise_current_user_privilege(details, {"role":MemberRoleEnum.ADMIN}, session)
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="failed..."
+        )
+
 # @user_router.get("/{user_uid}", response_model=User)
-# async def get_user(user_uid: str, session: AsyncSession = Depends(get_session)) -> dict:
+# async def get_user(user_uid: str, session: SessionDependency) -> dict:
 #     user = await user_service.get_user(user_uid, session)
 
 #     if user:
@@ -140,7 +154,7 @@ async def revoke_token(token_details: dict = access_token_bearer):
 
 
 # @user_router.patch("/{user_uid}", response_model=User)
-# async def update_user(user_uid: str, user_update_data: UserUpdateModel, session: AsyncSession = Depends(get_session)) -> dict:
+# async def update_user(user_uid: str, user_update_data: UserUpdateModel, session: SessionDependency) -> dict:
 #     updated_user = await user_service.update_user(user_uid, user_update_data, session)
         
 #     if updated_user:
@@ -150,7 +164,7 @@ async def revoke_token(token_details: dict = access_token_bearer):
 
 
 # @user_router.delete("/{user_uid}", status_code=status.HTTP_204_NO_CONTENT)
-# async def delete_user(user_uid:str, session: AsyncSession = Depends(get_session)):
+# async def delete_user(user_uid:str, session: SessionDependency):
 #     user_to_delete = await user_service.delete_user(user_uid, session)
 
 #     if not user_to_delete:

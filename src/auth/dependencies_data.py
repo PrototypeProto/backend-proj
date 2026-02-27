@@ -1,11 +1,9 @@
 from .dependencies import RoleChecker
-from fastapi.exceptions import HTTPException
 from fastapi import Depends
-from enum import Enum
 from src.db.db_enum_models import MemberRoleEnum
 
 
-role_checker = Depends(RoleChecker(['member']))
+role_checker = Depends(RoleChecker([MemberRoleEnum.MEMBER]))
 admin_rolechecker = Depends(RoleChecker([MemberRoleEnum.ADMIN]))
 coach_rolechecker = Depends(RoleChecker([MemberRoleEnum.ADMIN, MemberRoleEnum.COACH]))
 officer_rolechecker = Depends(RoleChecker([MemberRoleEnum.ADMIN, MemberRoleEnum.OFFICER]))

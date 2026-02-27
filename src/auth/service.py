@@ -1,26 +1,22 @@
 from src.db.models import User
 from sqlmodel.ext.asyncio.session import AsyncSession
 from .schemas import UserCreateModel, UserLoginModel
-from sqlmodel import select, desc
+from sqlmodel import select, desc, update
 from datetime import date, datetime
 from .utils import generate_passwd_hash, verify_passwd
 from uuid import UUID
 from src.db.db_enum_models import MemberRoleEnum
 
-"""
-    Handles business logic (db access) for the {/users} route
-    enforce proper data insertions 
-"""
-
 
 class UserService:
     """
-    Service to access data related to user-data
+    Handles business logic (db access) for the {/users} route
+    enforce proper data insertions
     """
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Existence Validation - Log in / Sign up
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     async def username_exists(self, username: str, session: AsyncSession) -> bool:
         user = await self.get_user_by_username(username, session)
         return user is not None
@@ -47,10 +43,19 @@ class UserService:
         statement = select(User).where(User.uid == uid)
         result = await session.exec(statement)
         return result.first()
-    
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+
+    async def raise_current_user_privilege(
+        self, user_id: UUID, model: UserPrivilegeUpdateModel, session: AsyncSession
+    ):
+        statement = update(User).where(User.uid == user_id).values(model)
+        result = await session.exec(statement)
+        await session.commit()
+
+        return result.rowcount > 0
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # Creation
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     async def create_user(
         self, user_data: UserCreateModel, session: AsyncSession
     ) -> User:
@@ -67,11 +72,12 @@ class UserService:
         return new_user
 
     # TODO: implement the login logic in the user_routes.py
+    # NOTE: Can combine the password hash logic here as well?
     async def valid_user_login(
         self, user_login_details: UserLoginModel, session: AsyncSession
     ) -> bool:
-        if not self.username_exists(user_login_details.username, session):
-            return False
+        # if not self.username_exists(user_login_details.username, session):
+        #     return False
 
         statement = select(User.passwd_hash).where(
             User.username == user_login_details.username
@@ -80,8 +86,8 @@ class UserService:
         hashed_password = result.first()
 
         # Unnecessary?
-        # if hashed_password is None:
-        #     return false
+        if hashed_password is None:
+            return false
 
         return verify_passwd(user_login_details.passwd, hashed_password)
 

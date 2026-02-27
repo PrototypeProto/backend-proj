@@ -14,7 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.auth.service import UserService
 from src.db.main import get_session
 from datetime import datetime, timedelta
-from src.auth.dependencies import RefreshTokenBearer, access_token_bearer, get_current_user_uuid, get_current_user_username
+from src.auth.dependencies import RefreshTokenBearer, access_token_bearer, get_current_user_uuid, get_current_user_by_username
 from src.auth.dependencies_data import admin_rolechecker, coach_rolechecker, officer_rolechecker, member_rolechecker, public_rolechecker
 from .service import MemberService
 from uuid import UUID
@@ -53,16 +53,6 @@ async def evaluate_coxwain( cox_eval: CoxwainEvaluationModel, session: SessionDe
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid user provided / Failed to submit evaluation")
 
     return coxwain_eval
-
-@member_router.put("/raise_privilege", status_code=status.HTTP_202_ACCEPTED)
-async def raise_privilege(session: SessionDependency, token: dict = access_token_bearer):
-    details = token["user"]["uid"]
-
-    result = await member_service.raise_p(details, {"role":"admin"}, session)
-    if result:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="failed..."
-        )
 
 @member_router.delete("/remove_coxwain_evaluation", dependencies=[officer_rolechecker], status_code=status.HTTP_204_NO_CONTENT)
 async def del_coxwain_evaluation(cox_eval: DeleteCoxwainEvaluationModel, session: SessionDependency):

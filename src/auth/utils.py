@@ -9,17 +9,17 @@ import logging
 ACCESS_TOKEN_EXPIRY = 3
 
 # Hash a password using bcrypt
-def generate_passwd_hash(password):
+def generate_passwd_hash(password) -> str:
     pwd_bytes = password.encode("utf-8")
     salt = gensalt()
     hashed_password = hashpw(pwd_bytes, salt)
     return hashed_password.decode("utf-8")
 
 # Check if the provided password matches the stored password (hashed)
-def verify_passwd(plain_password, hashed_password):
+def verify_passwd(plain_password, hashed_password) -> bool:
     return checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
 
-def create_access_token(user_data: dict, expiry: timedelta = None, refresh: bool = False):
+def create_access_token(user_data: dict, expiry: timedelta = None, refresh: bool = False) -> str:
     payload = {}
 
     payload["user"] = user_data

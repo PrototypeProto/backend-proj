@@ -123,5 +123,3 @@ class CreateMemberEnrollmentHistoryModel(StrictModel):
     semester: SemesterEnum
     dues_paid: bool = False
 
-class UserPrivilegeUpdateModel(StrictModel):
-    role: str

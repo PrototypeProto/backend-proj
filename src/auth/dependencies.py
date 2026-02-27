@@ -66,10 +66,8 @@ class RefreshTokenBearer(TokenBearer):
                 detail="Please provide an refresh token"
             )
 
-# token_bearer_data = AccessTokenBearer()
 
-
-async def get_current_user_username(token_details: dict = Depends(AccessTokenBearer()), session: AsyncSession = Depends(get_session)) -> dict:
+async def get_current_user_by_username(token_details: dict = Depends(AccessTokenBearer()), session: AsyncSession = Depends(get_session)) -> dict:
     user_username = token_details['user']['username']
     user = await user_service.get_user_by_username(user_username, session)
     return user
@@ -82,7 +80,7 @@ class RoleChecker:
     def __init__(self, allowed_roles: List[str]) -> None:
         self.allowed_roles = allowed_roles
 
-    def __call__(self, current_user: User = Depends(get_current_user_username)) -> Any:
+    def __call__(self, current_user: User = Depends(get_current_user_by_username)) -> Any:
         if current_user.role in self.allowed_roles:
             return True
 

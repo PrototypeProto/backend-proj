@@ -37,17 +37,17 @@ class User(SQLModel, table=True):
     )
 
     username: str = Field(
-        sa_column=Column(postgres.VARCHAR, nullable=False, unique=True),
+        sa_column=Column(postgres.VARCHAR, nullable=False, unique=True, index=True),
         min_length=8,
         max_length=8,
     )
     email: str = Field(
-        sa_column=Column(postgres.VARCHAR, unique=True, nullable=False), max_length=32
+        sa_column=Column(postgres.VARCHAR, unique=True, nullable=False, index=False), max_length=32
     )
     passwd_hash: str = Field(sa_column=Column(postgres.VARCHAR), exclude=True)
 
     first_name: str = Field(nullable=False, min_length=2, index=True)
-    last_name: str = Field(nullable=False, min_length=2, index=True)
+    last_name: str = Field(nullable=False, min_length=2, index=False)
     role: MemberRoleEnum = Field(
         sa_column=Column(
             SAEnum(MemberRoleEnum, name="member_role_enum", create_type=False),
@@ -59,7 +59,7 @@ class User(SQLModel, table=True):
     birthdate: date
     is_verified: bool = Field(default=False)
     join_date: date = Field(
-        sa_column=Column(postgres.DATE, default=date.today, index=True)
+        sa_column=Column(postgres.DATE, default=date.today, index=False)
     )
 
     def __str__(self):
